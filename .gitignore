@@ -1,1 +1,2 @@
-test.sh
+run_sglang_model.sh
+run_benchmark.sh

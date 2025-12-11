@@ -25,74 +25,74 @@ export MASTER_ADDR=${MLP_WORKER_0_HOST:-${MASTER_ADDR:-127.0.0.1}}
 export MASTER_PORT=${MLP_WORKER_0_PORT:-${MASTER_PORT:-1234}}
 
 # Optional dependency installation
-apt update
-apt install tmux -y
-pip install nvitop
+# apt update
+# apt install tmux -y
+# pip install nvitop
 
-echo "==== Starting Original Model SGLang Server (Port 6001)... ===="
-CUDA_VISIBLE_DEVICES=0,1,2,3 python -m sglang.launch_server \
-    --model-path $MODEL_PATH --host 0.0.0.0 --tp 2 --port 6001 &
+# echo "==== Starting Original Model SGLang Server (Port 6001)... ===="
+# CUDA_VISIBLE_DEVICES=0,1,2,3 python -m sglang.launch_server \
+#     --model-path $MODEL_PATH --host 0.0.0.0 --tp 2 --port 6001 &
 
-ORIGINAL_SERVER_PID=$!
+# ORIGINAL_SERVER_PID=$!
 
-echo "==== Starting Summary Model SGLang Server (Port 6002)... ===="
-CUDA_VISIBLE_DEVICES=4,5,6,7 python -m sglang.launch_server \
-    --model-path $SUMMARY_MODEL_PATH --host 0.0.0.0 --tp 4 --port 6002 &
+# echo "==== Starting Summary Model SGLang Server (Port 6002)... ===="
+# CUDA_VISIBLE_DEVICES=4,5,6,7 python -m sglang.launch_server \
+#     --model-path $SUMMARY_MODEL_PATH --host 0.0.0.0 --tp 4 --port 6002 &
 
-SUMMARY_SERVER_PID=$!
+# SUMMARY_SERVER_PID=$!
 
 #####################################
 ### 2. Wait for server ports ready###
 #####################################
 
-# sleep 500
-timeout=3000
-start_time=$(date +%s)
-server1_ready=false
-server2_ready=false
+# # sleep 500
+# timeout=3000
+# start_time=$(date +%s)
+# server1_ready=false
+# server2_ready=false
 
-while true; do
-    # Check Local Model
-    if ! $server1_ready && curl -s http://localhost:6001/v1/chat/completions > /dev/null; then
-        echo -e "\nLocal model (port 6001) is ready!"
-        server1_ready=true
-    fi
+# while true; do
+#     # Check Local Model
+#     if ! $server1_ready && curl -s http://localhost:6001/v1/chat/completions > /dev/null; then
+#         echo -e "\nLocal model (port 6001) is ready!"
+#         server1_ready=true
+#     fi
     
-    # Check Summary Model
-    if ! $server2_ready && curl -s http://localhost:6002/v1/chat/completions > /dev/null; then
-        echo -e "\nSummary model (port 6002) is ready!"
-        server2_ready=true
-    fi
+#     # Check Summary Model
+#     if ! $server2_ready && curl -s http://localhost:6002/v1/chat/completions > /dev/null; then
+#         echo -e "\nSummary model (port 6002) is ready!"
+#         server2_ready=true
+#     fi
     
-    # If both servers are ready, exit loop
-    if $server1_ready && $server2_ready; then
-        echo "Both servers are ready for inference!"
-        break
-    fi
+#     # If both servers are ready, exit loop
+#     if $server1_ready && $server2_ready; then
+#         echo "Both servers are ready for inference!"
+#         break
+#     fi
     
-    # Check if timeout
-    current_time=$(date +%s)
-    elapsed=$((current_time - start_time))
-    if [ $elapsed -gt $timeout ]; then
-        echo -e "\nWarning: Server startup timeout after ${timeout} seconds"
-        if ! $server1_ready; then
-            echo "First server (port 6001) failed to start"
-        fi
-        if ! $server2_ready; then
-            echo "Second server (port 6002) failed to start"
-        fi
-        break
-    fi
+#     # Check if timeout
+#     current_time=$(date +%s)
+#     elapsed=$((current_time - start_time))
+#     if [ $elapsed -gt $timeout ]; then
+#         echo -e "\nWarning: Server startup timeout after ${timeout} seconds"
+#         if ! $server1_ready; then
+#             echo "First server (port 6001) failed to start"
+#         fi
+#         if ! $server2_ready; then
+#             echo "Second server (port 6002) failed to start"
+#         fi
+#         break
+#     fi
     
-    printf 'Waiting for servers to start .....'
-    sleep 10
-done
+#     printf 'Waiting for servers to start .....'
+#     sleep 10
+# done
 
-if $server1_ready && $server2_ready; then
-    echo "Proceeding with both servers..."
-else
-    echo "Proceeding with available servers..."
-fi
+# if $server1_ready && $server2_ready; then
+#     echo "Proceeding with both servers..."
+# else
+#     echo "Proceeding with available servers..."
+# fi
 
 
 #####################################
