@@ -109,7 +109,7 @@ export NLP_WEB_SEARCH_ENABLE_SFILTER=false
 export QWEN_SEARCH_ENABLE_CSI=false
 export SPECIAL_CODE_MODE=false
 
-export MAX_WORKERS=20
+export MAX_WORKERS=1
 
 python -u run_multi_react.py --dataset "$DATASET" --output "$OUTPUT_PATH" --max_workers $MAX_WORKERS --model $MODEL_PATH --temperature $TEMPERATURE 
 

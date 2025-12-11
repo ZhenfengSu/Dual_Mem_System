@@ -1,2 +1,4 @@
 run_sglang_model.sh
 run_benchmark.sh
+src/__pycache__/memory.cpython-311.pyc
+src/__pycache__/*.pyc

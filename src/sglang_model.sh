@@ -31,6 +31,6 @@ export MASTER_PORT=${MLP_WORKER_0_PORT:-${MASTER_PORT:-1234}}
 
 echo "==== Starting Original Model SGLang Server (Port 6001)... ===="
 CUDA_VISIBLE_DEVICES=0,1,2,3 python -m sglang.launch_server \
-    --model-path $MODEL_PATH --host 0.0.0.0 --tp 4 --port 6001 &
+    --model-path $MODEL_PATH --host 0.0.0.0 --tp 2 --port 6001 &
 
 ORIGINAL_SERVER_PID=$!

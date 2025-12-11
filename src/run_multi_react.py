@@ -70,7 +70,6 @@ if __name__ == "__main__":
     except (json.JSONDecodeError, ValueError) as e:
         print(f"Error reading or parsing input file {data_filepath}: {e}")
         exit(1)
-
     # Create tasks for each rollout
     for rollout_idx in range(1, roll_out_count + 1):
         output_file = os.path.join(dataset_dir, f"iter{rollout_idx}.jsonl")
