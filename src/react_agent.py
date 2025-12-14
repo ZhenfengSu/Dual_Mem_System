@@ -12,7 +12,7 @@ from qwen_agent.settings import MAX_LLM_CALL_PER_RUN
 from qwen_agent.tools import BaseTool
 
 
-from memory import process_messages_remove_all, process_messages_keep_last
+from memory import process_messages_remove_all, process_messages_keep_last, process_messages_remove_all_tool_call, process_messages_keep_last_tool_call
 
 MAX_LLM_CALL_PER_RUN = int(os.getenv('MAX_LLM_CALL_PER_RUN', 40))
 MAX_TOKEN_LENGTH = int(os.getenv('MAX_LENGTH', 31 * 1024 - 500))
@@ -49,7 +49,8 @@ class MultiTurnReactAgent(FnCallAgent):
         )
 
         for attempt in range(max_tries):
-            msgs = process_messages_remove_all(msgs)
+            # breakpoint()
+            # msgs = process_messages_remove_all(msgs)
             try:
                 chat_response = client.chat.completions.create(model=self.model,
                     messages=msgs,
