@@ -38,7 +38,22 @@ class MultiTurnReactAgent(FnCallAgent):
         self.llm_generate_cfg = llm["generate_cfg"]
         self.llm_local_path = llm["model"]
         self.remove_percent = 0.75
+        self.tool_call_search_times = 0
+        self.tool_call_visit_times = 0
+        self.tool_call_other_times = 0
 
+    def add_tool_call_times(self, tool_name):
+        if tool_name == "search":
+            self.tool_call_search_times += 1
+        elif tool_name == "visit":
+            self.tool_call_visit_times += 1
+        else:
+            self.tool_call_other_times += 1
+            
+    def save_tool_call_times(self, filepath):
+        with open(filepath, 'a') as f:
+            f.write(f"search: {self.tool_call_search_times}, visit: {self.tool_call_visit_times}, other: {self.tool_call_other_times}\n")
+    
     def call_server(self, msgs, max_tries=10):
         # Set OpenAI API key and base URL using vLLM API server
         openai_api_key = "EMPTY"
@@ -110,6 +125,7 @@ class MultiTurnReactAgent(FnCallAgent):
                     tool_call = json.loads(tool_call)
                     tool_name = tool_call.get('name', '')
                     tool_args = tool_call.get('arguments', {})
+                    self.add_tool_call_times(tool_name)
                     result = self._call_tool(tool_name, tool_args)
                 except:
                     result = 'Error: Tool call is not a valid JSON. Tool call must contain a valid "name" and "arguments" field.'
@@ -159,7 +175,10 @@ class MultiTurnReactAgent(FnCallAgent):
                         "rollout_id": data['rollout_id'],
                         "messages": messages,
                         "prediction": prediction,
-                        "termination": termination
+                        "termination": termination,
+                        "tool_call_search_times": self.tool_call_search_times,
+                        "tool_call_visit_times": self.tool_call_visit_times,
+                        "tool_call_other_times": self.tool_call_other_times
                     }
                     return result
 
@@ -177,6 +196,9 @@ class MultiTurnReactAgent(FnCallAgent):
             "rollout_id": data['rollout_id'],
             "messages": messages,
             "prediction": prediction,
-            "termination": termination
+            "termination": termination,
+            "tool_call_search_times": self.tool_call_search_times,
+            "tool_call_visit_times": self.tool_call_visit_times,
+            "tool_call_other_times": self.tool_call_other_times
         }
         return result
