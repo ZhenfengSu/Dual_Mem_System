@@ -12,7 +12,7 @@ from qwen_agent.settings import MAX_LLM_CALL_PER_RUN
 from qwen_agent.tools import BaseTool
 
 
-from memory import process_messages_remove_all, process_messages_keep_last, process_messages_remove_all_tool_call, process_messages_keep_last_tool_call
+from memory import process_messages_remove_all, process_messages_keep_last, process_messages_remove_all_tool_call, process_messages_keep_last_tool_call,process_messages_remove_percent_tool_call
 
 MAX_LLM_CALL_PER_RUN = int(os.getenv('MAX_LLM_CALL_PER_RUN', 40))
 MAX_TOKEN_LENGTH = int(os.getenv('MAX_LENGTH', 31 * 1024 - 500))
@@ -37,6 +37,7 @@ class MultiTurnReactAgent(FnCallAgent):
                          **kwargs)
         self.llm_generate_cfg = llm["generate_cfg"]
         self.llm_local_path = llm["model"]
+        self.remove_percent = 0.75
 
     def call_server(self, msgs, max_tries=10):
         # Set OpenAI API key and base URL using vLLM API server
@@ -125,26 +126,42 @@ class MultiTurnReactAgent(FnCallAgent):
             print(f"round: {round}, token count: {token_count}")
 
             if token_count > max_tokens:
+                # 超出上下文了，先尝试删除部分 tool_call
                 print(f"Token count exceeds limit: {token_count} > {max_tokens}")
                 
-                messages[-1]['content'] = "You have now reached the maximum context length you can handle. You should stop making tool calls and, based on all the information above, think again and provide what you consider the most likely answer in the following format:<think>your final thinking</think>\n<answer>your answer</answer>"
-                content = self.call_server(messages)
-                messages.append({"role": "assistant", "content": content.strip()})
-                if '<answer>' in content and '</answer>' in content:
-                    prediction = messages[-1]['content'].split('<answer>')[1].split('</answer>')[0]
-                    termination = 'generate an answer as token limit reached'
+                # 保存原始消息用于后续处理，对副本进行处理
+                processed_messages = process_messages_remove_percent_tool_call(messages, self.remove_percent)
+                
+                # 重新计算 token
+                new_token_count = self.count_tokens(processed_messages)
+                print(f"After removing {self.remove_percent*100:.0f}% tool calls, token count: {new_token_count}")
+                
+                if new_token_count <= max_tokens:
+                    # 使用处理后的消息继续
+                    messages = processed_messages
+                    token_count = new_token_count
+                    continue
                 else:
-                    prediction = messages[-1]['content']
-                    termination = 'format error: generate an answer as token limit reached'
-                result = {
-                    "question": question,
-                    "answer": answer,
-                    "rollout_id": data['rollout_id'],
-                    "messages": messages,
-                    "prediction": prediction,
-                    "termination": termination
-                }
-                return result
+                    # 仍然超出上下文，直接输出答案
+                    print(f"Still exceeds token limit after removal: {token_count} > {max_tokens}")
+                    messages[-1]['content'] = "You have now reached the maximum context length you can handle. You should stop making tool calls and, based on all the information above, think again and provide what you consider the most likely answer in the following format:<think>your final thinking</think>\n<answer>your answer</answer>"
+                    content = self.call_server(messages)
+                    messages.append({"role": "assistant", "content": content.strip()})
+                    if '<answer>' in content and '</answer>' in content:
+                        prediction = messages[-1]['content'].split('<answer>')[1].split('</answer>')[0]
+                        termination = 'generate an answer as token limit reached'
+                    else:
+                        prediction = messages[-1]['content']
+                        termination = 'format error: generate an answer as token limit reached'
+                    result = {
+                        "question": question,
+                        "answer": answer,
+                        "rollout_id": data['rollout_id'],
+                        "messages": messages,
+                        "prediction": prediction,
+                        "termination": termination
+                    }
+                    return result
 
         if '<answer>' in messages[-1]['content']:
             prediction = messages[-1]['content'].split('<answer>')[1].split('</answer>')[0]
